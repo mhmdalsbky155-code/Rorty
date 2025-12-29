@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 ❤️</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root { --red: #ff3e3e; --glass: rgba(255, 255, 255, 0.1); }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #05050a; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center; background: radial-gradient(circle at center, #1a1a2e, #05050a); }
+        .active { display: flex !important; animation: fadeIn 0.8s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .glass-card { background: var(--glass); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 35px; padding: 35px; width: 100%; max-width: 450px; }
+        
+        /* تنسيق العداد والتواريخ */
+        .stats-container { display: flex; justify-content: space-around; margin: 15px 0; gap: 5px; }
+        .stat-box { background: rgba(255, 62, 62, 0.15); padding: 8px; border-radius: 12px; flex: 1; border: 1px solid rgba(255,62,62,0.3); }
+        .stat-num { font-size: 1.2rem; font-weight: bold; display: block; color: var(--red); }
+        .stat-label { font-size: 0.7rem; }
+        .timeline-scroll { max-height: 250px; overflow-y: auto; text-align: right; padding: 10px; margin-top: 10px; border-right: 2px solid var(--red); scroll-behavior: smooth; }
+        .memory-card { background: rgba(255,255,255,0.05); margin-bottom: 12px; padding: 12px; border-radius: 10px; font-size: 0.95rem; }
+
+        /* سهم الإشارة المطور */
+        .scroll-indicator { font-size: 0.9rem; color: var(--red); animation: bounce 1.5s infinite; margin-top: 10px; font-weight: bold; transition: opacity 0.5s, visibility 0.5s; }
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-8px);} 60% {transform: translateY(-4px);} }
+
+        #map { width: 100%; height: 280px; border-radius: 20px; margin: 15px 0; border: 2px solid var(--red); z-index: 1; }
+        .btn { background: linear-gradient(45deg, #ff3e3e, #ff0055); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-size: 17px; font-weight: bold; cursor: pointer; transition: 0.3s; margin: 10px; z-index: 10; }
+        #noBtn { position: fixed; background: #444; z-index: 9999; transition: 0.1s; border: none; padding: 10px 30px; border-radius: 50px; color: white; }
+        .hug-zone { position: absolute; z-index: 1000; display: none; transform: translate(-50%, -50%); width: 120px; height: 120px; pointer-events: none; }
+        .marriage-contract { background: #fdf5e6; color: #4e342e; padding: 25px; border: 8px double #8d6e63; border-radius: 10px; width: 85%; max-width: 380px; }
+        .fp-img { width: 65px; height: 85px; background-image: url('https://img.icons8.com/ios-filled/100/2c1e1a/fingerprint.png'); background-size: contain; background-repeat: no-repeat; margin: 0 auto 5px; }
+        .mohamed-fp { opacity: 1; filter: sepia(1) saturate(15) hue-rotate(-50deg); }
+        .rawan-fp { opacity: 0.2; filter: grayscale(1); transition: 0.5s; cursor: pointer; }
+        .rawan-fp.signed { opacity: 1; filter: sepia(1) saturate(15) hue-rotate(180deg); }
+        #videoOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 10000; display: none; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--red); color: white; padding: 12px 25px; border-radius: 15px; font-weight: bold; transition: 0.5s; z-index: 10002; display: none; }
+    </style>
+</head>
+<body>
+
+<div id="toastMsg" class="toast">مش بمزاجك يرورتي</div>
+
+<div class="slide active" id="s1">
+    <div class="glass-card"><h1>2026 ❤️</h1><p>اكتبي الباسورد يرورتي♥️</p><input type="tel" id="passInput" style="width: 80%; padding: 15px; border-radius: 50px; text-align: center; font-size: 20px; color: black;" placeholder="••••"><br><br><button class="btn" onclick="checkPass()">دخول</button></div>
+</div>
+
+<div class="slide" id="s_time">
+    <div class="glass-card">
+        <h2 style="margin: 0;">إحنا سوا بقالنا.. ❤️</h2>
+        <div class="stats-container">
+            <div class="stat-box"><span id="d" class="stat-num">0</span><span class="stat-label">يوم</span></div>
+            <div class="stat-box"><span id="h" class="stat-num">0</span><span class="stat-label">ساعة</span></div>
+            <div class="stat-box"><span id="m" class="stat-num">0</span><span class="stat-label">دقيقة</span></div>
+            <div class="stat-box"><span id="s" class="stat-num">0</span><span class="stat-label">ثانية</span></div>
+        </div>
+        <div class="timeline-scroll" id="scrollArea">
+            <div class="memory-card">عداد من يوم معرفتك 8/1</div>
+            <div class="memory-card">لاول رساله واتس بينا 2/1 الساعه 3:00الفجر</div>
+            <div class="memory-card">اول وعد بينا 7/2 الساعه 3:34</div>
+            <div class="memory-card">اول مره اعترفنا لبعض بحبنا 15/3 الساعه 4:55</div>
+            <p style="font-size: 0.9rem; text-align: justify; padding: 5px; line-height: 1.6;">وغيرهم كتير كل تواريخنا وزكرياتنا محفوظه فقلبي وعقلي كل لحظه عشتها معاكي هيا احلي لحظه فعمر عمري الي ابتدا 8/1 يوم معرفتك وروحي الي مبقتش موجوده غير لما حبيتك لان انتي روحي السنه دي كانت صعبه ومشاكلها كتير بس رغم ده هيا حطتنا فكل الظروف والاختبارات مرينا باوقات الزعل الخناق الخلافات فقدان الشغف الخوف الاحباط لاكن اتخطينا كل حاجه سوا وفنهايه كل خلاف كان الحاجه الثابته اننا دايما بنختار بعض لان ملناش غير بعض الوقت ده كان كفايه اوي اني اعيش معاكي كل حاجه واحبك فكل الاوقات والظروف حتي الاوقات الي صعب حد يحب او يتحب فسكوتك او عصبيتك عنادك ودلعك هرموناتككك حبيتك فكل الاوقات لانك مش بس حبيبتي انتي بنتي وأجمل حاجه فحياتي (انتي رورتي) ♥️🫂</p>
+        </div>
+        <div id="scrollHint" class="scroll-indicator">
+            <div style="font-size: 0.8rem; margin-bottom: 2px;">قبل متضغطي انزلي لتحت يعمري</div>
+            <div style="font-size: 1.5rem;">▼</div>
+        </div>
+        <button class="btn" onclick="goToSlide('time', 2)">كملي رحلتنا ❤️</button>
+    </div>
+</div>
+
+<div class="slide" id="s2">
+    <div class="glass-card">
+        <h2>مهما كانت المسافة.. القلوب سوا</h2>
+        <div id="map"></div>
+        <div id="hugZone" class="hug-zone">
+            <svg viewBox="0 0 100 100">
+                <g style="stroke: #00ccff; stroke-width: 4; fill: none; transform: translateX(-20px);"><path d="M40,50 L40,70 M40,55 L32,65 M40,55 L48,65 M40,45 A5,5 0 1,1 40,35" /></g>
+                <g style="stroke: #ff007f; stroke-width: 4; fill: none; transform: translateX(20px);"><path d="M60,50 L60,70 M60,55 L68,65 M60,55 L52,65 M60,45 A5,5 0 1,1 60,35" /></g>
+            </svg>
+        </div>
+        <button class="btn" id="meetBtn" onclick="startMeeting()">إضغطي للقاء ❤️</button>
+    </div>
+</div>
+
+<div class="slide" id="s3">
+    <div class="glass-card">
+        <p style="font-size: 1.15rem; line-height: 1.6; text-align: justify; direction: rtl;">إنتي أجمل صدفة في حياتي والرزق الي ربنا رزقني بيه رغم صعوبه السنه دي علينا الي انك كنتي الجزء الاجمل منها كنتي جنبي فكل الاوقات المره قبل الحلوه فوجودك عمري محسيت اني لوحدي انتي اجمل واحلي بنت فالدنيا من جوا ومن برا والله مهما وصفت قد ايه انتي حلوه عمري مهقدر اقول انا قد ايه شايفك حلوه انا بحبك اوييي ربنا يخليكي ليا ويجعلك من نصيبي يا احلي رورتي♥️🫂</p>
+        <button class="btn" onclick="goToSlide(3, 4)">Next</button>
+    </div>
+</div>
+
+<div class="slide" id="s4">
+    <div class="glass-card" style="height: 350px;">
+        <h2>مستعدة نكمل حياتنا كلها سوا؟</h2>
+        <button class="btn" onclick="goToSlide(4, 5)">Forever ❤️</button>
+        <button class="btn" id="noBtn">لا</button>
+    </div>
+</div>
+
+<div class="slide" id="s5">
+    <div class="marriage-contract">
+        <h2 style="margin: 0; font-size: 1.2rem;">Sign a contract to stay together forever ❤️</h2>
+        <div style="display: flex; justify-content: space-around; margin: 25px 0;">
+            <div><div class="fp-img mohamed-fp"></div><strong>محمد</strong></div>
+            <div onclick="sealContract()"><div id="rawanFp" class="fp-img rawan-fp"></div><strong>روان (ابصمي هنا)</strong></div>
+        </div>
+        <p style="font-size: 0.8rem; color: #b71c1c;">بصمتك هي اللي هتفتح رسالتي ليكي 📢</p>
+    </div>
+</div>
+
+<div id="videoOverlay">
+    <iframe id="finalVid" src="" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen"></iframe>
+</div>
+
+<script>
+    const PASS = "812025";
+    let map;
+
+    function goToSlide(f, t) { 
+        document.querySelectorAll('.slide').forEach(s => s.classList.remove('active')); 
+        const tid = isNaN(t) ? 's_' + t : 's' + t;
+        document.getElementById(tid).classList.add('active'); 
+        if(t == 2) setTimeout(initMap, 500);
+    }
+
+    function checkPass() { 
+        if(document.getElementById('passInput').value === PASS) { 
+            startCounter();
+            goToSlide(1, 'time'); 
+        } else { alert("غلط!"); }
+    }
+
+    function startCounter() {
+        const start = new Date("2025-01-08T00:00:00").getTime();
+        setInterval(() => {
+            const now = new Date().getTime();
+            const diff = now - start;
+            document.getElementById("d").innerText = Math.floor(diff / 86400000);
+            document.getElementById("h").innerText = Math.floor((diff % 86400000) / 3600000);
+            document.getElementById("m").innerText = Math.floor((diff % 3600000) / 60000);
+            document.getElementById("s").innerText = Math.floor((diff % 60000) / 1000);
+        }, 1000);
+    }
+
+    // وظيفة السهم الذكي (يختفي عند النزول ويظهر عند الصعود للأعلى)
+    document.getElementById('scrollArea').onscroll = function() {
+        let scrollHint = document.getElementById('scrollHint');
+        if (this.scrollTop > 20) {
+            scrollHint.style.opacity = '0';
+            scrollHint.style.visibility = 'hidden';
+        } else {
+            scrollHint.style.opacity = '1';
+            scrollHint.style.visibility = 'visible';
+        }
+    };
+
+    function initMap() { 
+        if(map) return;
+        map = L.map('map').setView([30.85, 30.95], 7); 
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map); 
+        L.marker([31.11, 30.93]).addTo(map); 
+        L.marker([30.59, 30.98]).addTo(map); 
+    }
+
+    function startMeeting() {
+        document.getElementById('meetBtn').style.display = 'none';
+        const k = [31.11, 30.93], m = [30.59, 30.98], mid = [(k[0]+m[0])/2, (k[1]+m[1])/2];
+        let l1 = L.polyline([k, k], {color: '#00ccff', weight: 4}).addTo(map);
+        let l2 = L.polyline([m, m], {color: '#ff007f', weight: 4}).addTo(map);
+        let p = 0;
+        let int = setInterval(() => {
+            p += 0.02;
+            l1.setLatLngs([k, [k[0]+(mid[0]-k[0])*p, k[1]+(mid[1]-k[1])*p]]);
+            l2.setLatLngs([m, [m[0]+(mid[0]-m[0])*p, m[1]+(mid[1]-m[1])*p]]);
+            if(p >= 1) { 
+                clearInterval(int); confetti();
+                const hug = document.getElementById('hugZone'); const pt = map.latLngToContainerPoint(mid);
+                hug.style.left = pt.x + 'px'; hug.style.top = pt.y + 'px'; hug.style.display = 'block';
+                setTimeout(() => goToSlide(2, 3), 3000);
+            }
+        }, 50);
+    }
+
+    const noBtn = document.getElementById('noBtn');
+    const moveBtn = () => {
+        noBtn.style.left = Math.random() * 70 + '%';
+        noBtn.style.top = Math.random() * 70 + '%';
+        document.getElementById('toastMsg').style.display = 'block';
+        setTimeout(() => { document.getElementById('toastMsg').style.display = 'none'; }, 1000);
+    };
+    noBtn.addEventListener('mouseover', moveBtn);
+    noBtn.addEventListener('touchstart', moveBtn);
+
+    function sealContract() {
+        document.getElementById('rawanFp').classList.add('signed');
+        confetti();
+        document.getElementById('videoOverlay').style.display = "block";
+        document.getElementById('finalVid').src = "https://streamable.com/e/eio30i?autoplay=1&muted=0";
+    }
+</script>
+</body>
+  </html>
